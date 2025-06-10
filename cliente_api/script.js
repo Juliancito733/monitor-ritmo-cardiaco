@@ -75,4 +75,51 @@ document.addEventListener('DOMContentLoaded', function() {
             tbody.appendChild(row);
         });
     }
+
+    // Función para calcular estadísticas
+    function calculateStats(registros) {
+        const totalRegistros = registros.length;
+        
+        // Dispositivos únicos
+        const dispositivosUnicos = [...new Set(registros.map(r => r.dispositivo))];
+        
+        // Valores de ritmo
+        const valores = registros.map(r => r.ritmo.valor);
+        const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+        const minimo = Math.min(...valores);
+        const maximo = Math.max(...valores);
+        
+        // Anomalías
+        const anomalias = registros.filter(r => detectAnomaly(r.ritmo.valor)).length;
+        
+        // Actualizar UI
+        const resumenCards = document.getElementById('resumen-cards');
+        resumenCards.innerHTML = `
+            <div class="col s12 m6 l3">
+                <div class="card-panel blue lighten-1 white-text">
+                    <span class="card-title">Total registros</span>
+                    <h4>${totalRegistros}</h4>
+                </div>
+            </div>
+            <div class="col s12 m6 l3">
+                <div class="card-panel green lighten-1 white-text">
+                    <span class="card-title">Dispositivos</span>
+                    <h4>${dispositivosUnicos.length}</h4>
+                </div>
+            </div>
+            <div class="col s12 m6 l3">
+                <div class="card-panel orange lighten-1 white-text">
+                    <span class="card-title">Promedio</span>
+                    <h4>${promedio.toFixed(1)} bpm</h4>
+                </div>
+            </div>
+            <div class="col s12 m6 l3">
+                <div class="card-panel ${anomalias > 0 ? 'red darken-2' : 'green lighten-2'} white-text">
+                    <span class="card-title">Rango</span>
+                    <h4>${minimo}-${maximo} bpm</h4>
+                </div>
+            </div>
+
+        `;
+    }
 });
