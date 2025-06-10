@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Monitor de ritmo cardíaco con alertas</title>
+  
+  <!-- Materialize CSS -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  
+</head>
+<body class="grey lighten-4">
+  <div class="container">
+    <div class="row">
+      <div class="col s12">
+        <h3 class="center-align"><i class="material-icons large red-text">favorite</i> Monitor de ritmo cardíaco</h3>
+      </div>
+    </div>
+
+    <!-- Estado de Conexión -->
+    <div class="row">
+      <div class="col s12">
+        <div class="card status-card">
+          <div class="card-content">
+            <span class="card-title">Estado del sistema</span>
+            <p id="statusInfo">Conectando...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Selector de Dispositivo -->
+    <div class="row">
+      <div class="col s12 m6">
+        <div class="input-field">
+          <select id="dispositivoSelect">
+            <option value="" disabled selected>Selecciona un dispositivo</option>
+          </select>
+          <label>Dispositivos disponibles</label>
+        </div>
+      </div>
+      <div class="col s12 m6">
+        <div class="input-field">
+          <input id="limiteAlerta" type="number" value="100" min="60" max="200">
+          <label for="limiteAlerta">Límite de alerta (BPM)</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Datos en Tiempo Real -->
+    <div id="datosContainer" style="display: none;">
+      <!-- Estadísticas Rápidas -->
+      <div class="row">
+        <div class="col s12">
+          <div class="card">
+            <div class="card-content">
+              <span class="card-title">
+                <i class="material-icons left">assessment</i>
+                Estadísticas en tiempo real
+              </span>
+              <div class="stats-container">
+                <div class="stat-card blue lighten-4">
+                  <h5 id="currentBPM">--</h5>
+                  <p>BPM actual</p>
+                </div>
+                <div class="stat-card green lighten-4">
+                  <h5 id="avgBPM">--</h5>
+                  <p>Promedio</p>
+                </div>
+                <div class="stat-card orange lighten-4">
+                  <h5 id="maxBPM">--</h5>
+                  <p>Máximo</p>
+                </div>
+                <div class="stat-card purple lighten-4">
+                  <h5 id="minBPM">--</h5>
+                  <p>Mínimo</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico en Tiempo Real -->
+      <div class="row">
+        <div class="col s12">
+          <div class="card">
+            <div class="card-content">
+              <span class="card-title">
+                <i class="material-icons left">timeline</i>
+                Ritmo cardíaco en tiempo real
+              </span>
+              <div class="chart-container">
+                <canvas id="heartRateChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico de Distribución -->
+      <div class="row">
+        <div class="col s12 m6">
+          <div class="card">
+            <div class="card-content">
+              <span class="card-title">
+                <i class="material-icons left">donut_large</i>
+                Distribución por zonas
+              </span>
+              <div class="chart-container" style="height: 300px;">
+                <canvas id="distributionChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col s12 m6">
+          <div class="card">
+            <div class="card-content">
+              <span class="card-title">
+                <i class="material-icons left">bar_chart</i>
+                Tendencia horaria
+              </span>
+              <div class="chart-container" style="height: 300px;">
+                <canvas id="hourlyChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Datos -->
+      <div class="row">
+        <div class="col s12">
+          <div class="card heart-rate-card" id="heartRateCard">
+            <div class="card-content">
+              <span class="card-title">
+                <i class="material-icons left">list</i>
+                Últimas lecturas
+              </span>
+              <table class="striped centered">
+                <thead>
+                  <tr>
+                    <th>Dispositivo</th>
+                    <th>Ritmo cardíaco (BPM)</th>
+                    <th>Estado</th>
+                    <th>Timestamp</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaDatos">
+                  <tr><td colspan="5">Esperando datos...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historial de Alertas -->
+    <div class="row">
+      <div class="col s12">
+        <div class="card">
+          <div class="card-content">
+            <span class="card-title">
+              <i class="material-icons left red-text">warning</i>
+              Historial de alertas
+            </span>
+            <div class="alert-history" id="alertHistory">
+              <p class="grey-text">No hay alertas registradas</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Alerta -->
+  <div id="alertModal" class="modal">
+    <div class="modal-content">
+      <h4><i class="material-icons left">warning</i>¡ALERTA MÉDICA!</h4>
+      <p id="alertMessage"></p>
+      <div class="input-field">
+        <textarea id="mensajeEmergencia" class="materialize-textarea" placeholder="Mensaje de emergencia personalizado"></textarea>
+        <label for="mensajeEmergencia">Mensaje para enviar al dispositivo</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a href="#!" class="modal-close waves-effect waves-red btn red" id="enviarMensaje">
+        <i class="material-icons left">send</i>Enviar mensaje
+      </a>
+      <a href="#!" class="modal-close waves-effect waves-grey btn-flat">Cerrar</a>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
