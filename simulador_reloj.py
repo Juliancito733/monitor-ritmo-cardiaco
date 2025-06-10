@@ -43,3 +43,25 @@ def enviar_a_api(mensaje):
             print(f"Error al enviar a API: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Error al conectar con la API: {e}")
+
+client = mqtt.Client()
+client.on_connect = on_connect
+client.connect(broker, port, 60)
+client.loop_start()
+
+try:
+    while True:
+        ritmo = generar_ritmo_cardiaco()
+        mensaje = construir_mensaje(nombre_dispositivo, ritmo)
+        client.publish(topic, json.dumps(mensaje))
+        print(f"MQTT -> '{topic}': {mensaje}")
+        
+        enviar_a_api(mensaje)  # <-- Enviar también a la API
+        time.sleep(5)
+
+except KeyboardInterrupt:
+    print("Deteniendo el envío de datos...")
+
+finally:
+    client.loop_stop()
+    client.disconnect()
