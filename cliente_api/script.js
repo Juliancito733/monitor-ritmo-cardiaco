@@ -33,4 +33,22 @@ document.addEventListener('DOMContentLoaded', function() {
             M.toast({html: 'Error al cargar los datos', classes: 'red'});
         }
     }
+
+    // Función para procesar los datos y actualizar la UI
+    function processData(registros) {
+        // Ordenar por defecto por timestamp descendente
+        registros.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // Actualizar tabla
+        updateTable(registros);
+        
+        // Calcular estadísticas
+        calculateStats(registros);
+        
+        // Agrupar por dispositivo
+        groupByDevice(registros);
+        
+        // Preparar datos para gráfico cronológico
+        prepareTimeChart(registros);
+    }
 });
