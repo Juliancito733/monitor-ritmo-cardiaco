@@ -14,4 +14,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (valor < 60) return { type: 'low', message: 'Ritmo bajo' };
         return null;
     }
+
+    // Función para cargar los datos desde el endpoint
+    async function loadData() {
+        try {
+            const response = await fetch('http://localhost:5000/api/ritmo');
+            if (!response.ok) throw new Error('Error al cargar los datos');
+            
+            const data = await response.json();
+            // Si el endpoint devuelve un array de registros
+            // Si devuelve un solo objeto, lo convertimos a array
+            const registros = Array.isArray(data) ? data : [data];
+            
+            // Procesar los datos
+            processData(registros);
+        } catch (error) {
+            console.error('Error:', error);
+            M.toast({html: 'Error al cargar los datos', classes: 'red'});
+        }
+    }
 });
