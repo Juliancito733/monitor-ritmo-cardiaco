@@ -33,3 +33,13 @@ def construir_mensaje(dispositivo, ritmo):
         "unidad": "bpm",
         "timestamp": int(time.time())
     }
+
+def enviar_a_api(mensaje):
+    try:
+        response = requests.post(api_url, json=mensaje)
+        if response.status_code == 200 or response.status_code == 201:
+            print(f"Datos enviados a la API: {mensaje}")
+        else:
+            print(f"Error al enviar a API: {response.status_code} - {response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error al conectar con la API: {e}")
