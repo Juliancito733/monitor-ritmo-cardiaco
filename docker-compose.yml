@@ -1,0 +1,16 @@
+services:
+  mosquitto:
+    build:
+      context: .
+      dockerfile: Dockerfile.mosquitto
+    container_name: mosquitto
+    ports:
+      - "1883:1883"
+      - "80:9001"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./simulador_reloj.py:/app/simulador_reloj.py
+    networks:
+      - mqtt_network
+
+
