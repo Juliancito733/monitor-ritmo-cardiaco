@@ -391,4 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 M.toast({html: 'Error al ordenar los datos', classes: 'red'});
             });
     });
+
+    // Cargar datos iniciales
+    loadData();
 });
