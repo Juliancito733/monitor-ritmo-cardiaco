@@ -51,4 +51,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Preparar datos para gráfico cronológico
         prepareTimeChart(registros);
     }
+
+    // Función para actualizar la tabla
+    function updateTable(registros) {
+        const tbody = document.getElementById('registros-tbody');
+        tbody.innerHTML = '';
+        
+        registros.forEach(registro => {
+            const anomaly = detectAnomaly(registro.ritmo.valor);
+            const row = document.createElement('tr');
+            
+            if (anomaly) {
+                row.classList.add(anomaly.type === 'high' ? 'anomaly-high' : 'anomaly-low');
+            }
+            
+            row.innerHTML = `
+                <td>${registro.id}</td>
+                <td>${registro.dispositivo}</td>
+                <td>${registro.ritmo.valor} <span class="grey-text">${registro.ritmo.unidad}</span></td>
+                <td>${formatTimestamp(registro.timestamp)}</td>
+            `;
+            
+            tbody.appendChild(row);
+        });
+    }
 });
