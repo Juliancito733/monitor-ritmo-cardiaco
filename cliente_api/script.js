@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar componentes de Materialize
     M.AutoInit();
+
+    // Variables para los gráficos
+    let dispositivosChart = null;
+    let cronologiaChart = null;
     
     // Función para formatear timestamp a fecha legible
     function formatTimestamp(timestamp) {
@@ -163,5 +167,52 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Actualizar gráfico de dispositivos
         updateDevicesChart(dispositivosMap);
+    }
+
+    // Función para actualizar gráfico de dispositivos
+    function updateDevicesChart(dispositivosMap) {
+        const ctx = document.getElementById('dispositivos-chart').getContext('2d');
+        const dispositivos = Object.keys(dispositivosMap);
+        const promedios = dispositivos.map(d => dispositivosMap[d].total / dispositivosMap[d].count);
+        
+        if (dispositivosChart) {
+            dispositivosChart.destroy();
+        }
+        
+        dispositivosChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: dispositivos,
+                datasets: [{
+                    label: 'Ritmo promedio (bpm)',
+                    data: promedios,
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(255, 159, 64, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Ritmo (bpm)'
+                        }
+                    }
+                }
+            }
+        });
     }
 });
