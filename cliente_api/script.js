@@ -122,4 +122,46 @@ document.addEventListener('DOMContentLoaded', function() {
 
         `;
     }
+
+    // Función para agrupar por dispositivo
+    function groupByDevice(registros) {
+        const dispositivosMap = {};
+        
+        registros.forEach(registro => {
+            if (!dispositivosMap[registro.dispositivo]) {
+                dispositivosMap[registro.dispositivo] = {
+                    count: 0,
+                    total: 0,
+                    valores: []
+                };
+            }
+            
+            dispositivosMap[registro.dispositivo].count++;
+            dispositivosMap[registro.dispositivo].total += registro.ritmo.valor;
+            dispositivosMap[registro.dispositivo].valores.push(registro.ritmo.valor);
+        });
+        
+        // Actualizar lista
+        const dispositivosLista = document.getElementById('dispositivos-lista');
+        dispositivosLista.innerHTML = '';
+        
+        for (const [dispositivo, data] of Object.entries(dispositivosMap)) {
+            const promedio = data.total / data.count;
+            const min = Math.min(...data.valores);
+            const max = Math.max(...data.valores);
+            
+            const card = document.createElement('div');
+            card.className = 'card-panel hoverable';
+            card.innerHTML = `
+                <h5>${dispositivo}</h5>
+                <p>Registros: ${data.count}</p>
+                <p>Promedio: ${promedio.toFixed(1)} bpm</p>
+                <p>Rango: ${min}-${max} bpm</p>
+            `;
+            dispositivosLista.appendChild(card);
+        }
+        
+        // Actualizar gráfico de dispositivos
+        updateDevicesChart(dispositivosMap);
+    }
 });
