@@ -358,4 +358,37 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Manejar cambio de orden
+    document.getElementById('orden-select').addEventListener('change', function() {
+        const value = this.value;
+        
+        // Recargar datos y aplicar orden
+        fetch('http://localhost:5000/api/ritmo')
+            .then(response => response.json())
+            .then(data => {
+                const registros = Array.isArray(data) ? data : [data];
+                
+                switch(value) {
+                    case 'timestamp-desc':
+                        registros.sort((a, b) => b.timestamp - a.timestamp);
+                        break;
+                    case 'timestamp-asc':
+                        registros.sort((a, b) => a.timestamp - b.timestamp);
+                        break;
+                    case 'valor-desc':
+                        registros.sort((a, b) => b.ritmo.valor - a.ritmo.valor);
+                        break;
+                    case 'valor-asc':
+                        registros.sort((a, b) => a.ritmo.valor - b.ritmo.valor);
+                        break;
+                }
+                
+                updateTable(registros);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                M.toast({html: 'Error al ordenar los datos', classes: 'red'});
+            });
+    });
 });
