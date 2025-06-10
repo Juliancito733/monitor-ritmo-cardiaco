@@ -215,4 +215,147 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Función para preparar gráfico cronológico con líneas independientes por dispositivo
+    function prepareTimeChart(registros) {
+        // Agrupar registros por dispositivo
+        const dispositivosMap = {};
+        
+        registros.forEach(registro => {
+            if (!dispositivosMap[registro.dispositivo]) {
+                dispositivosMap[registro.dispositivo] = {
+                    timestamps: [],
+                    valores: [],
+                    labels: []
+                };
+            }
+            
+            dispositivosMap[registro.dispositivo].timestamps.push(registro.timestamp);
+            dispositivosMap[registro.dispositivo].valores.push(registro.ritmo.valor);
+            dispositivosMap[registro.dispositivo].labels.push(formatTimestamp(registro.timestamp));
+        });
+        
+        // Configurar colores para cada dispositivo
+        const dispositivosUnicos = Object.keys(dispositivosMap);
+        const colors = [
+            'rgba(54, 162, 235, 1)',    // Azul
+            'rgba(255, 99, 132, 1)',     // Rojo
+            'rgba(75, 192, 192, 1)',     // Verde
+            'rgba(255, 159, 64, 1)',     // Naranja
+            'rgba(153, 102, 255, 1)',    // Morado
+            'rgba(201, 203, 207, 1)'     // Gris
+        ];
+        
+        // Obtener todos los timestamps únicos y ordenados
+        const allTimestamps = [...new Set(registros.map(r => r.timestamp))].sort((a, b) => a - b);
+        const allLabels = allTimestamps.map(ts => formatTimestamp(ts));
+        
+        // Crear datasets para cada dispositivo
+        const datasets = dispositivosUnicos.map((dispositivo, index) => {
+            const color = colors[index % colors.length];
+            const deviceData = dispositivosMap[dispositivo];
+            
+            // Mapear valores a los timestamps generales
+            const valuesForAllTimestamps = allTimestamps.map(ts => {
+                const indexInDevice = deviceData.timestamps.indexOf(ts);
+                return indexInDevice !== -1 ? deviceData.valores[indexInDevice] : null;
+            });
+            
+            return {
+                label: dispositivo,
+                data: valuesForAllTimestamps,
+                borderColor: color,
+                backgroundColor: color,
+                borderWidth: 2,
+                pointRadius: function(context) {
+                    return context.raw !== null ? 5 : 0;
+                },
+                pointHoverRadius: 7,
+                tension: 0.1,
+                fill: false,
+                spanGaps: true
+            };
+        });
+        
+        // Crear o actualizar gráfico
+        const ctx = document.getElementById('cronologia-chart').getContext('2d');
+        
+        if (cronologiaChart) {
+            cronologiaChart.destroy();
+        }
+        
+        cronologiaChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: allLabels,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        title: {
+                            display: true,
+                            text: 'Ritmo (bpm)'
+                        },
+                        suggestedMin: Math.max(40, Math.min(...registros.map(r => r.ritmo.valor)) - 10),
+                        suggestedMax: Math.max(...registros.map(r => r.ritmo.valor)) + 10
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Fecha/Hora'
+                        },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            callback: function(value, index, values) {
+                                // Mostrar solo algunas etiquetas para evitar saturación
+                                if (values.length > 15 && index % Math.ceil(values.length / 10) !== 0) {
+                                    return '';
+                                }
+                                return allLabels[index];
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return allLabels[context[0].dataIndex];
+                            },
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.parsed.y} bpm`;
+                            },
+                            afterLabel: function(context) {
+                                const dispositivo = context.dataset.label;
+                                const timestamp = allTimestamps[context.dataIndex];
+                                const registro = registros.find(r => 
+                                    r.dispositivo === dispositivo && r.timestamp === timestamp
+                                );
+                                
+                                if (registro) {
+                                    const anomaly = detectAnomaly(registro.ritmo.valor);
+                                    if (anomaly) {
+                                        return `⚠️ ${anomaly.message}`;
+                                    }
+                                }
+                                return '';
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top',
+                        onClick: null
+                    }
+                }
+            }
+        });
+    }
 });
