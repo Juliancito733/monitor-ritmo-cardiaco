@@ -5,13 +5,13 @@
 ### 1. Construcción de imágenes y contenedores
 
 - Ubícate en la raíz de la carpeta que clonaste.
-- El archivo que nos interesa en este momento es el `docker-compose.yml`. Para poder orquestar los múltiples contenedores como un solo servicio ejecutaremos el siguiente comando en PowerShell:
+- El archivo que nos interesa en este momento es el `docker-compose.yml`. Para poder orquestar los múltiples contenedores como un solo servicio ejecutaremos el siguiente comando:
 
 ```bash
 docker-compose up -d
 ```
 
-Para detener los contenedores haremos uso del siguiente comando:
+Cuando finalicen las pruebas para detener los contenedores haremos uso del siguiente comando:
 
 ```bash
 docker-compose down
