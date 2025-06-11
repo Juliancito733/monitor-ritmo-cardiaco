@@ -259,7 +259,7 @@ btnEnviarMensaje.addEventListener("click", () => {
         // Mostrar confirmación temporal de envío exitoso
         const feedback = document.createElement("div");
         feedback.textContent = "Mensaje enviado";
-        feedback.style.color = "#0f0";
+        feedback.style.color = "#ffffff"; 
         feedback.style.marginTop = "0.5em";
         feedback.style.fontSize = "0.9em";
 
