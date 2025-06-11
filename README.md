@@ -94,6 +94,7 @@ Si desea visualizar los datos almacenados directamente desde el contenedor, es n
 ```bash
 docker exec -it mysql_db mysql -u {usuario} -p
 ```
+En `{usuario}` debe ser uno de los se enlistaron con anterioridad. 
 
 Inmediatamente, se le solicitará ingresar la contraseña correspondiente dependiendo del usuario.
 
