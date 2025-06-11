@@ -26,7 +26,7 @@ Gracias al `docker-compose.yml` ya no es necesario montar de forma manual el scr
    docker ps -a
    ```
 
-2. El `docker-compose.yml` crea 3 contenedores, el que nos interesa es el que tiene el nombre de `proyecto-mosquitto`, ingresaremos a él mediante el siguiente comando:
+2. El `docker-compose.yml` crea 3 contenedores, el que nos interesa es el que tiene el nombre de `{nombre_carpeta}-mosquitto`, ingresaremos a él mediante el siguiente comando:
    ```bash
    docker exec -it id_contenedor sh
    ```
@@ -46,7 +46,7 @@ Gracias al `docker-compose.yml` ya no es necesario montar de forma manual el scr
    python simulador_reloj.py nombre_del_reloj
    ```
 
-   `nombre_del_reloj` es el argumento específico, así que puedes ponerle el nombre que tú quieras como:
+   `nombre_del_reloj` es el argumento específico, así que puedes ponerle el nombre que tú quieras (sin espacios) como:
    - `reloj1`
    - `apple_watch`
    - `galaxy_watch6`
