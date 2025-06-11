@@ -10,7 +10,9 @@
 ```bash
 docker-compose up -d
 ```
+
 Para detener los contenedores haremos uso del siguiente comando:
+
 ```bash
 docker-compose down
 ```
@@ -69,7 +71,7 @@ Ante la complejidad de orquestar múltiples elementos, se optó por usar un `doc
 - **MySQL**: Para almacenar la información generada por el simulador del reloj en una base de datos mediante la API.
 - **PHP con mysqli**: Utilizado para levantar un servicio web y así poder acceder a la API y hacer las consultas establecidas internas de la API.
 
-La división de responsabilidades es de suma importancia, realizar lo anterior con un solo contenedor habría dificultado su gestionamiento, ya que al fallar algo todos los demás también se verían afectados.
+La división de responsabilidades es de suma importancia, realizar lo anterior con un solo contenedor habría dificultado su gestión, ya que al fallar algo todos los demás también se verían afectados.
 
 Es importante aclarar que el `docker-compose.yml` ocupa Dockerfiles (`dockerfile.php`, `dockerfile.mosquitto`) que personalizamos para poder tener todo el stack tecnológico necesario para su funcionamiento dentro de contenedores, no es necesario ejecutar cada dockerfile de forma individual, esto ya lo hace automáticamente el `docker-compose.yml`.
 
@@ -79,12 +81,40 @@ De forma resumida hace lo siguiente:
 
 **mosquitto**
 Broker MQTT basado en Eclipse Mosquitto, con configuración personalizada y un script Python que simula un reloj inteligente publicando ritmo cardíaco.
+Dentro del script de python utilizamos la librería request, la cual nos permitirá realizar operaciones http, en este caso un post a la API.
 
 **mysql_db**
 Base de datos MySQL que almacena los datos de la API. Se inicializa con un script SQL (`init.sql`) y mantiene persistencia con un volumen.
 
+En nuestro caso tenemos a dos usuarios, uno declarado explícitamente en el docker-compose:
+* Usuario: root, Contraseña: root_password_seguro
+* Usuario: usuario_api, Contraseña: password_usuario_api
+
+Si desea visualizar los datos almacenados directamente desde el contenedor, es necesario ingresar el siguiente comando:
+```bash
+docker exec -it mysql_db mysql -u {usuario} -p
+```
+
+Inmediatamente, se le solicitará ingresar la contraseña correspondiente dependiendo del usuario.
+
+Una vez dentro, podrá ingresar el comando `SHOW DATABASES` y verá creada la BD declarada en el docker-compose con el nombre basedatos_api.
+
+Posteriormente ingresa `USE basedatos_api` y `SHOW TABLES`, la tabla generada es a partir del archivo init.sql el cual es montado en la ruta `/docker-entrypoint-initdb.d/init.sql` dentro del contenedor, la cual es datos_relojes, posteriormente haz un `SELECT * FROM datos_relojes` para mostrar todos los datos.
+
+**¿Qué sucede ahí?**
+Cuando usas una imagen oficial de MySQL, durante la creación inicial del contenedor (es decir, cuando la base de datos aún no existe), cualquier archivo .sql o .sh en la carpeta `/docker-entrypoint-initdb.d/` se ejecuta automáticamente. En nuestro caso, ocupamos una imagen oficial. El archivo init.sql, solo se ejecutará una vez.
+
+**¿Y la persistencia?**
+En el archivo Docker-compose.yml creamos un volumen (una forma de guardar datos de manera persistente fuera del contenedor[named volumes]) - `mysql_data:/var/lib/mysql`, en este caso:
+almacena los datos de la base de datos fuera del contenedor, para que no se pierdan si el contenedor se reinicia o elimina.
+
+`/var/lib/mysql` es donde MySQL guarda sus archivos de base de datos dentro del contenedor.
+
+`mysql_data` es un volumen Docker que se crea automáticamente si no existe.
+
 **api_php**
 Servidor PHP que ejecuta una API REST (ubicada en `API_RitmoCardiaco`) en el puerto 5000, conectándose a la base de datos.
+En el docker-compose declaramos el siguiente comando `php -S 0.0.0.0:5000 -t /var/www/html`, el cual lanza un servidor embebido el cual escucha en todas las interfaces para poder acceder desde dentro de los contenedores o fuera de ellos y establecemos la ruta en la cual fueron montados los archivos de la api del host al contenedor. De igual forma, se hace un mapeo del host al contenedor, siendo este el mismo para poder consumir la API desde el host.
 
 #### Red y Volúmenes:
 
