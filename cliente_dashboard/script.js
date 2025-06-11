@@ -54,6 +54,24 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ============================================================================
+// CONEXIÓN INICIAL
+// ============================================================================
+
+// Conectar al broker MQTT al cargar la página
+client.connect({
+    onSuccess: function() {
+        console.log("Conectado al broker MQTT");
+        updateStatus("Conectado - Descubriendo dispositivos...", 'success');
+        client.subscribe(wildcardTopic);
+        topicActual = wildcardTopic;
+    },
+    onFailure: function(e) {
+        console.error("Fallo al conectar:", e.errorMessage);
+        updateStatus("Error de conexión", 'error');
+    }
+});
+
+// ============================================================================
 // CONFIGURACIÓN Y MANEJO DE CONEXIÓN MQTT
 // ============================================================================
 
@@ -440,16 +458,16 @@ function evaluarRitmoCardiaco(bpm) {
 
 /**
  * Muestra un modal de alerta cuando se detecta un ritmo cardíaco peligroso
- * @param {string} dispositivo - Nombre del dispositivo
+ * @param {string} nombreDispositivo - Nombre del dispositivo
  * @param {number} bpm - Valor del ritmo cardíaco
  * @param {object} evaluacion - Resultado de la evaluación del ritmo cardíaco
  */
-function mostrarAlerta(dispositivo, bpm, evaluacion) {
+function mostrarAlerta(nombreDispositivo, bpm, evaluacion) {
     const alertModal = M.Modal.getInstance(document.getElementById('alertModal'));
     const alertMessage = document.getElementById('alertMessage');
     
     alertMessage.innerHTML = `
-        <strong>Dispositivo:</strong> ${dispositivo}<br>
+        <strong>Dispositivo:</strong> ${nombreDispositivo}<br>
         <strong>BPM:</strong> <span class="${evaluacion.clase}">${bpm}</span><br>
         <strong>Estado:</strong> <span class="${evaluacion.clase}">${evaluacion.estado}</span><br>
         <strong>Hora:</strong> ${new Date().toLocaleString()}
@@ -463,7 +481,7 @@ function mostrarAlerta(dispositivo, bpm, evaluacion) {
     alertModal.open();
     
     // Agregar al historial de alertas
-    agregarAlHistorial(dispositivo, bpm, evaluacion.estado);
+    agregarAlHistorial(nombreDispositivo, bpm, evaluacion.estado);
     
     // Reproducir sonido de alerta
     playAlertSound();
@@ -471,15 +489,15 @@ function mostrarAlerta(dispositivo, bpm, evaluacion) {
 
 /**
  * Agrega una alerta al historial visible en la interfaz
- * @param {string} dispositivo - Nombre del dispositivo
+ * @param {string} nombreDispositivo - Nombre del dispositivo
  * @param {number} bpm - Valor del ritmo cardíaco
- * @param {string} estado - Estado evaluado (Normal, Elevado, etc.)
+ * @param {string} estadoEvaluado - Estado evaluado (Normal, Elevado, etc.)
  */
-function agregarAlHistorial(dispositivo, bpm, estado) {
+function agregarAlHistorial(nombreDispositivo, bpm, estadoEvaluado) {
     const alert = {
-        dispositivo,
+        dispositivo: nombreDispositivo,
         bpm,
-        estado,
+        estado: estadoEvaluado,
         timestamp: new Date().toLocaleString()
     };
     
@@ -495,7 +513,7 @@ function agregarAlHistorial(dispositivo, bpm, estado) {
     alertElement.innerHTML = `
         <span class="red-text">
             <i class="material-icons left">warning</i>
-            <strong>${dispositivo}</strong> - ${bpm} BPM (${estado}) - ${alert.timestamp}
+            <strong>${nombreDispositivo}</strong> - ${bpm} BPM (${estadoEvaluado}) - ${alert.timestamp}
         </span>
     `;
     
@@ -574,12 +592,12 @@ function agregarDispositivoAlSelect(nombre) {
 
 /**
  * Actualiza la tabla de datos con la información más reciente del dispositivo
- * @param {string} dispositivo - Nombre del dispositivo
+ * @param {string} nombreDispositivo - Nombre del dispositivo
  * @param {number} ritmo - Valor del ritmo cardíaco
  * @param {number} timestamp - Marca de tiempo Unix
  * @param {object} evaluacion - Resultado de la evaluación del ritmo cardíaco
  */
-function actualizarTabla(dispositivo, ritmo, timestamp, evaluacion) {
+function actualizarTabla(nombreDispositivo, ritmo, timestamp, evaluacion) {
     const tbody = document.getElementById("tablaDatos");
     const heartRateCard = document.getElementById("heartRateCard");
     
@@ -588,12 +606,12 @@ function actualizarTabla(dispositivo, ritmo, timestamp, evaluacion) {
     
     tbody.innerHTML = `
         <tr>
-            <td>${dispositivo}</td>
+            <td>${nombreDispositivo}</td>
             <td class="${evaluacion.clase}">${ritmo}</td>
             <td><span class="chip ${evaluacion.clase.replace('-zone', '')}">${evaluacion.estado}</span></td>
             <td>${new Date(timestamp * 1000).toLocaleString()}</td>
             <td>
-                <button class="btn-small blue waves-effect waves-light" onclick="enviarMensajeManual('${dispositivo}')">
+                <button class="btn-small blue waves-effect waves-light" onclick="enviarMensajeManual('${nombreDispositivo}')">
                     <i class="material-icons left">send</i>Mensaje
                 </button>
             </td>
@@ -634,7 +652,7 @@ document.getElementById("dispositivoSelect").addEventListener("change", function
         resetStats();
         
         // Limpiar mensajes anteriores
-        mensajesRecibidos = [];
+        arrayMensajesRecibidos = [];
         actualizarVisualizadorMensajes();
         
         const tbody = document.getElementById("tablaDatos");
@@ -655,7 +673,7 @@ document.getElementById("dispositivoSelect").addEventListener("change", function
         
         dispositivoSeleccionado = "";
         document.getElementById("datosContainer").style.display = "none";
-        mensajesRecibidos = [];
+        arrayMensajesRecibidos = [];
         actualizarVisualizadorMensajes();
     }
 });
@@ -669,19 +687,92 @@ document.getElementById("enviarMensaje").addEventListener("click", function() {
 });
 
 // ============================================================================
-// CONEXIÓN INICIAL
+// OBTENER Y VISUALIZAR MENSAJES DEL DISPOSITIVO
 // ============================================================================
 
-// Conectar al broker MQTT al cargar la página
-client.connect({
-    onSuccess: function() {
-        console.log("Conectado al broker MQTT");
-        updateStatus("Conectado - Descubriendo dispositivos...", 'success');
-        client.subscribe(wildcardTopic);
-        topicActual = wildcardTopic;
-    },
-    onFailure: function(e) {
-        console.error("Fallo al conectar:", e.errorMessage);
-        updateStatus("Error de conexión", 'error');
+// Variable para almacenar mensajes recibidos
+let arrayMensajesRecibidos = [];
+
+// Topic para suscribirse a mensajes del dispositivo seleccionado
+let topicMensajes = null;
+
+/**
+ * Suscribirse al tópico de mensajes del dispositivo seleccionado
+ * @param {string} nombreDispositivo - Nombre del dispositivo
+ */
+function suscribirMensajes(nombreDispositivo) {
+    // Desuscribirse del tópico anterior si existe
+    if (topicMensajes) {
+        client.unsubscribe(topicMensajes);
     }
-});
+    
+    // Suscribirse al nuevo tópico de mensajes
+    topicMensajes = `dispositivos/${nombreDispositivo}/mensajes`;
+    client.subscribe(topicMensajes);
+    console.log(`Suscrito a mensajes: ${topicMensajes}`);
+}
+
+/**
+ * Mostrar mensaje recibido en el visualizador
+ * @param {string} nombreDispositivo - Nombre del dispositivo
+ * @param {object} mensaje - Objeto con el mensaje recibido
+ */
+function mostrarMensajeRecibido(nombreDispositivo, mensaje) {
+    const mensajeData = {
+        dispositivo: nombreDispositivo,
+        contenido: mensaje.mensaje || mensaje.contenido || JSON.stringify(mensaje),
+        tipo: mensaje.tipo || 'info',
+        timestamp: new Date().toLocaleString()
+    };
+    
+    arrayMensajesRecibidos.unshift(mensajeData);
+    
+    // Limitar a 20 mensajes máximo
+    if (arrayMensajesRecibidos.length > 20) {
+        arrayMensajesRecibidos = arrayMensajesRecibidos.slice(0, 20);
+    }
+    
+    actualizarVisualizadorMensajes();
+    
+    // Mostrar toast de notificación
+    showToast(`Mensaje de ${nombreDispositivo}: ${mensajeData.contenido.substring(0, 50)}...`, 'info');
+}
+
+/**
+ * Actualizar el contenido del visualizador de mensajes
+ */
+function actualizarVisualizadorMensajes() {
+    const container = document.getElementById('mensajesContainer');
+    
+    if (arrayMensajesRecibidos.length === 0) {
+        container.innerHTML = '<p class="grey-text">No hay mensajes recibidos</p>';
+        return;
+    }
+    
+    let html = '';
+    arrayMensajesRecibidos.forEach(mensaje => {
+        const iconColor = mensaje.tipo === 'error' ? 'red-text' : 
+                         mensaje.tipo === 'warning' ? 'orange-text' : 'blue-text';
+        const icon = mensaje.tipo === 'error' ? 'error' : 
+                    mensaje.tipo === 'warning' ? 'warning' : 'message';
+        
+        html += `
+            <div class="card-panel ${mensaje.tipo === 'error' ? 'red lighten-4' : 
+                                   mensaje.tipo === 'warning' ? 'orange lighten-4' : 
+                                   'blue lighten-5'}" style="margin: 5px 0;">
+                <div class="row valign-wrapper" style="margin: 0;">
+                    <div class="col s1">
+                        <i class="material-icons ${iconColor}">${icon}</i>
+                    </div>
+                    <div class="col s11">
+                        <p style="margin: 0;"><strong>${mensaje.dispositivo}</strong></p>
+                        <p style="margin: 0; font-size: 0.9em;">${mensaje.contenido}</p>
+                        <p style="margin: 0; font-size: 0.8em; color: #666;">${mensaje.timestamp}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
